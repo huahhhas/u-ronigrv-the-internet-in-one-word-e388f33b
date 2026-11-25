@@ -14,26 +14,40 @@ only whitespace.
 """
 
 import os
+import sys
 
 WORD = "brainrot"
 
 
 def validate(word):
-    """Check the word against the competition gate before writing it."""
+    """Check the word against the competition gate before writing it.
+
+    Raises ValueError with a plain message when the word fails the gate,
+    so a bad word is reported instead of tripping an assertion.
+    """
     text = word.strip()
-    assert text, "word must not be only whitespace"
-    assert " " not in text, "entry must be a single word"
-    assert 1 <= len(word) <= 30, "word must be 1 to 30 characters"
-    word.encode("utf-8")
-    return word
+    if not text:
+        raise ValueError("word must not be only whitespace")
+    if any(ch.isspace() for ch in text):
+        raise ValueError("entry must be a single word")
+    if not 1 <= len(text) <= 30:
+        raise ValueError("word must be 1 to 30 characters")
+    text.encode("utf-8")
+    return text
 
 
 def main():
-    out_dir = os.environ.get("MAKEFUN_OUTPUT_DIR", "/output")
-    os.makedirs(out_dir, exist_ok=True)
-    with open(os.path.join(out_dir, "entry.txt"), "w", encoding="utf-8") as f:
-        f.write(validate(WORD) + "\n")
+    """Write the word, reporting a failed gate or write on stderr."""
+    out_dir = os.environ.get("MAKEFUN_OUTPUT_DIR") or "/output"
+    try:
+        os.makedirs(out_dir, exist_ok=True)
+        with open(os.path.join(out_dir, "entry.txt"), "w", encoding="utf-8") as f:
+            f.write(validate(WORD) + "\n")
+    except (ValueError, OSError) as exc:
+        print(f"error: {exc}", file=sys.stderr)
+        return 1
+    return 0
 
 
 if __name__ == "__main__":
-    main()
+    raise SystemExit(main())
